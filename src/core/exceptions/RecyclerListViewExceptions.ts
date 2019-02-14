@@ -14,8 +14,7 @@ const RecyclerListViewExceptions: {[key: string]: Exception} = {
         type: "ItemTypeNullException",
     },
     layoutException: {
-        message: "RecyclerListView needs to have a bounded size. Currently height or, width is 0." +
-                    "Consider adding style={{flex:1}} or, fixed dimensions",
+        message: "RecyclerListView needs to have a bounded size. Currently height or, width is 0",
         type: "LayoutException",
     },
     platformNotDetectedException: {
@@ -26,22 +25,6 @@ const RecyclerListViewExceptions: {[key: string]: Exception} = {
     unresolvedDependenciesException: {
         message: "missing datasource or layout provider, cannot proceed without it",
         type: "UnresolvedDependenciesException",
-    },
-    refNotAsFunctionException: {
-        message: "When using StickyContainer, RecyclerListView needs to use ref as a function and not as a string.",
-        type: "RefNotAsFunctionException",
-    },
-    wrongStickyChildTypeException: {
-        message: "StickyContainer can only have a single child of type RecyclerListView.",
-        type: "WrongStickyChildTypeException",
-    },
-    usingOldVisibleIndexesChangedParam: {
-        message: "onVisibleIndexesChanged has been deprecated. Please use onVisibleIndicesChanged instead.",
-        type: "usingOldVisibleIndexesChangedParam",
-    },
-    stickyIndicesArraySortError: {
-        message: "The sticky indices array passed to StickyContainer isn't sorted in ascending order.",
-        type: "stickyIndicesArraySortError",
     },
 };
 export default RecyclerListViewExceptions;

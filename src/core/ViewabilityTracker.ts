@@ -1,6 +1,6 @@
 import BinarySearch from "../utils/BinarySearch";
 import { Dimension } from "./dependencies/LayoutProvider";
-import { Layout } from "./layoutmanager/LayoutManager";
+import { Rect } from "./layoutmanager/LayoutManager";
 /***
  * Given an offset this utility can compute visible items. Also tracks previously visible items to compute items which get hidden or visible
  * Virtual renderer uses callbacks from this utility to main recycle pool and the render stack.
@@ -19,7 +19,6 @@ export default class ViewabilityTracker {
     public onEngagedRowsChanged: TOnItemStatusChanged | null;
 
     private _currentOffset: number;
-    private _actualOffset: number;
     private _maxOffset: number;
     private _renderAheadOffset: number;
     private _visibleWindow: Range;
@@ -29,11 +28,10 @@ export default class ViewabilityTracker {
     private _windowBound: number;
     private _visibleIndexes: number[];
     private _engagedIndexes: number[];
-    private _layouts: Layout[] = [];
+    private _layouts: Rect[] = [];
 
     constructor(renderAheadOffset: number, initialOffset: number) {
         this._currentOffset = Math.max(0, initialOffset);
-        this._actualOffset = this._currentOffset;
         this._maxOffset = 0;
         this._renderAheadOffset = renderAheadOffset;
         this._visibleWindow = { start: 0, end: 0 };
@@ -49,13 +47,15 @@ export default class ViewabilityTracker {
         this.onEngagedRowsChanged = null;
 
         this._relevantDim = { start: 0, end: 0 };
+
+        this._valueExtractorForBinarySearch = this._valueExtractorForBinarySearch.bind(this);
     }
 
     public init(): void {
         this._doInitialFit(this._currentOffset);
     }
 
-    public setLayouts(layouts: Layout[], maxOffset: number): void {
+    public setLayouts(layouts: Rect[], maxOffset: number): void {
         this._layouts = layouts;
         this._maxOffset = maxOffset;
     }
@@ -77,7 +77,6 @@ export default class ViewabilityTracker {
     }
 
     public updateOffset(offset: number): void {
-        this._actualOffset = offset;
         offset = Math.min(this._maxOffset, Math.max(0, offset));
         if (this._currentOffset !== offset) {
             this._currentOffset = offset;
@@ -92,14 +91,6 @@ export default class ViewabilityTracker {
 
     public getLastOffset(): number {
         return this._currentOffset;
-    }
-
-    public getLastActualOffset(): number {
-        return this._actualOffset;
-    }
-
-    public getEngagedIndexes(): number[] {
-        return this._engagedIndexes;
     }
 
     public findFirstLogicallyVisibleIndex(): number {
@@ -121,15 +112,6 @@ export default class ViewabilityTracker {
             }
         }
         return result;
-    }
-
-    public updateRenderAheadOffset(renderAheadOffset: number): void {
-        this._renderAheadOffset = Math.max(0, renderAheadOffset);
-        this.forceRefreshWithOffset(this._currentOffset);
-    }
-
-    public getCurrentRenderAheadOffset(): number {
-        return this._renderAheadOffset;
     }
 
     private _findFirstVisibleIndexOptimally(): number {
@@ -180,7 +162,7 @@ export default class ViewabilityTracker {
         return BinarySearch.findClosestHigherValueIndex(count, this._visibleWindow.start + bias, this._valueExtractorForBinarySearch);
     }
 
-    private _valueExtractorForBinarySearch = (index: number): number => {
+    private _valueExtractorForBinarySearch(index: number): number {
         const itemRect = this._layouts[index];
         this._setRelevantBounds(itemRect, this._relevantDim);
         return this._relevantDim.end;
@@ -247,7 +229,7 @@ export default class ViewabilityTracker {
         return isFound;
     }
 
-    private _setRelevantBounds(itemRect: Layout, relevantDim: Range): void {
+    private _setRelevantBounds(itemRect: Rect, relevantDim: Range): void {
         if (this._isHorizontal) {
             relevantDim.end = itemRect.x + itemRect.width;
             relevantDim.start = itemRect.x;

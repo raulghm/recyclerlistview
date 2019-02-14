@@ -15,7 +15,7 @@ export default class RecycleItemPool {
         this._availabilitySet = {};
     }
 
-    public putRecycledObject(objectType: string | number, object: string): void  {
+    public putRecycledObject(objectType: string | number, object: number): void  {
         objectType = this._stringify(objectType);
         const objectSet = this._getRelevantSet(objectType);
         if (!this._availabilitySet[object]) {
@@ -24,10 +24,10 @@ export default class RecycleItemPool {
         }
     }
 
-    public getRecycledObject(objectType: string | number): string | undefined {
+    public getRecycledObject(objectType: string | number): string | null {
         objectType = this._stringify(objectType);
         const objectSet = this._getRelevantSet(objectType);
-        let recycledObject;
+        let recycledObject = null;
         for (const property in objectSet) {
             if (objectSet.hasOwnProperty(property)) {
                 recycledObject = property;
@@ -42,7 +42,7 @@ export default class RecycleItemPool {
         return recycledObject;
     }
 
-    public removeFromPool(object: string): boolean  {
+    public removeFromPool(object: number): boolean  {
         if (this._availabilitySet[object]) {
             delete this._getRelevantSet(this._availabilitySet[object])[object];
             delete this._availabilitySet[object];

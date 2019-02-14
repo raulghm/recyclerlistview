@@ -12,8 +12,8 @@ export interface ScrollComponentProps {
     isHorizontal?: boolean;
     renderFooter?: () => JSX.Element | JSX.Element[] | null;
     scrollThrottle?: number;
+    distanceFromWindow?: number;
     useWindowScroll?: boolean;
-    onLayout?: any;
 }
 export default abstract class BaseScrollComponent extends React.Component<ScrollComponentProps, {}> {
     public abstract scrollTo(x: number, y: number, animate: boolean): void;

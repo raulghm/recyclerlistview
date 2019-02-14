@@ -8,6 +8,7 @@ export interface ScrollViewDefaultProps {
     horizontal: boolean;
     canChangeSize: boolean;
     style?: CSSProperties | null;
+    distanceFromWindow: number;
     useWindowScroll: boolean;
 }
 export interface ScrollEvent {

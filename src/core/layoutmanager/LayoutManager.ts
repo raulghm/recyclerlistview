@@ -1,66 +1,34 @@
 /***
  * Computes the positions and dimensions of items that will be rendered by the list. The output from this is utilized by viewability tracker to compute the
  * lists of visible/hidden item.
+ * Note: In future, this will also become an external dependency which means you can write your own layout manager. That will enable everyone to layout their
+ * views just the way they want. Current implementation is a StaggeredList
  */
-import { Dimension, LayoutProvider } from "../dependencies/LayoutProvider";
+import LayoutProvider, { Dimension } from "../dependencies/LayoutProvider";
 import CustomError from "../exceptions/CustomError";
 
-export abstract class LayoutManager {
-    public getOffsetForIndex(index: number): Point {
-        const layouts = this.getLayouts();
-        if (layouts.length > index) {
-            return { x: layouts[index].x, y: layouts[index].y };
-        } else {
-            throw new CustomError({
-                message: "No layout available for index: " + index,
-                type: "LayoutUnavailableException",
-            });
-        }
-    }
-
-    //You can ovveride this incase you want to override style in some cases e.g, say you want to enfore width but not height
-    public getStyleOverridesForIndex(index: number): object | undefined {
-        return undefined;
-    }
-
-    //Return the dimension of entire content inside the list
-    public abstract getContentDimension(): Dimension;
-
-    //Return all computed layouts as an array, frequently called, you are expected to return a cached array. Don't compute here.
-    public abstract getLayouts(): Layout[];
-
-    //RLV will call this method in case of mismatch with actual rendered dimensions in case of non deterministic rendering
-    //You are expected to cache this value and prefer it over estimates provided
-    //No need to relayout which RLV will trigger. You should only relayout when relayoutFromIndex is called.
-    public abstract overrideLayout(index: number, dim: Dimension): void;
-
-    //Recompute layouts from given index, compute heavy stuff should be here
-    public abstract relayoutFromIndex(startIndex: number, itemCount: number): void;
-}
-
-export class WrapGridLayoutManager extends LayoutManager {
+export default class LayoutManager {
     private _layoutProvider: LayoutProvider;
     private _window: Dimension;
     private _totalHeight: number;
     private _totalWidth: number;
+    private _layouts: Rect[];
     private _isHorizontal: boolean;
-    private _layouts: Layout[];
 
-    constructor(layoutProvider: LayoutProvider, renderWindowSize: Dimension, isHorizontal: boolean = false, cachedLayouts?: Layout[]) {
-        super();
+    constructor(layoutProvider: LayoutProvider, dimensions: Dimension, isHorizontal: boolean = false, cachedLayouts?: Rect[]) {
         this._layoutProvider = layoutProvider;
-        this._window = renderWindowSize;
+        this._window = dimensions;
         this._totalHeight = 0;
         this._totalWidth = 0;
-        this._isHorizontal = !!isHorizontal;
         this._layouts = cachedLayouts ? cachedLayouts : [];
+        this._isHorizontal = isHorizontal;
     }
 
-    public getContentDimension(): Dimension {
+    public getLayoutDimension(): Dimension {
         return { height: this._totalHeight, width: this._totalWidth };
     }
 
-    public getLayouts(): Layout[] {
+    public getLayouts(): Rect[] {
         return this._layouts;
     }
 
@@ -93,7 +61,7 @@ export class WrapGridLayoutManager extends LayoutManager {
     }
 
     //TODO:Talha laziliy calculate in future revisions
-    public relayoutFromIndex(startIndex: number, itemCount: number): void {
+    public reLayoutFromIndex(startIndex: number, itemCount: number): void {
         startIndex = this._locateFirstNeighbourIndex(startIndex);
         let startX = 0;
         let startY = 0;
@@ -108,6 +76,7 @@ export class WrapGridLayoutManager extends LayoutManager {
         }
 
         const oldItemCount = this._layouts.length;
+
         const itemDim = { height: 0, width: 0 };
         let itemRect = null;
 
@@ -115,12 +84,11 @@ export class WrapGridLayoutManager extends LayoutManager {
 
         for (let i = startIndex; i < itemCount; i++) {
             oldLayout = this._layouts[i];
-            const layoutType = this._layoutProvider.getLayoutTypeForIndex(i);
-            if (oldLayout && oldLayout.isOverridden && oldLayout.type === layoutType) {
+            if (oldLayout && oldLayout.isOverridden) {
                 itemDim.height = oldLayout.height;
                 itemDim.width = oldLayout.width;
             } else {
-                this._layoutProvider.setComputedLayout(layoutType, itemDim, i);
+                this._layoutProvider.setLayoutForType(this._layoutProvider.getLayoutTypeForIndex(i), itemDim, i);
             }
             this.setMaxBounds(itemDim);
             while (!this._checkBounds(startX, startY, itemDim, this._isHorizontal)) {
@@ -140,12 +108,11 @@ export class WrapGridLayoutManager extends LayoutManager {
 
             //TODO: Talha creating array upfront will speed this up
             if (i > oldItemCount - 1) {
-                this._layouts.push({ x: startX, y: startY, height: itemDim.height, width: itemDim.width, type: layoutType });
+                this._layouts.push({ x: startX, y: startY, height: itemDim.height, width: itemDim.width });
             } else {
                 itemRect = this._layouts[i];
                 itemRect.x = startX;
                 itemRect.y = startY;
-                itemRect.type = layoutType;
                 itemRect.width = itemDim.width;
                 itemRect.height = itemDim.height;
             }
@@ -162,7 +129,7 @@ export class WrapGridLayoutManager extends LayoutManager {
         this._setFinalDimensions(maxBound);
     }
 
-    private _pointDimensionsToRect(itemRect: Layout): void {
+    private _pointDimensionsToRect(itemRect: Rect): void {
         if (this._isHorizontal) {
             this._totalWidth = itemRect.x;
         } else {
@@ -202,9 +169,8 @@ export class WrapGridLayoutManager extends LayoutManager {
     }
 }
 
-export interface Layout extends Dimension, Point {
+export interface Rect extends Dimension, Point {
     isOverridden?: boolean;
-    type: string | number;
 }
 export interface Point {
     x: number;

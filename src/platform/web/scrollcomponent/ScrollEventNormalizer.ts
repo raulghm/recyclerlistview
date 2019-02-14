@@ -3,7 +3,7 @@ import { ScrollEvent } from "../../../core/scrollcomponent/BaseScrollView";
 export class ScrollEventNormalizer {
     public divEvent: ScrollEvent;
     public windowEvent: ScrollEvent;
-    constructor(target: HTMLDivElement) {
+    constructor(target: HTMLDivElement, distanceFromWindow: number) {
         this.divEvent = {
             nativeEvent: {
                 contentOffset: {
@@ -36,10 +36,10 @@ export class ScrollEventNormalizer {
             nativeEvent: {
                 contentOffset: {
                     get x(): number {
-                        return window.scrollX === undefined ? window.pageXOffset : window.scrollX;
+                        return window.scrollX - distanceFromWindow;
                     },
                     get y(): number {
-                        return window.scrollY === undefined ? window.pageYOffset : window.scrollY;
+                        return window.scrollY - distanceFromWindow;
                     },
                 },
                 contentSize: {
